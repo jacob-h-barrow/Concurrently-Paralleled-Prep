@@ -24,6 +24,20 @@ class TestAtomicVariable(unittest.TestCase):
         result = atomic_var.compare_and_exchange(5, 30)
         self.assertEqual(result, 0)
         self.assertEqual(atomic_var.get(), 10)
+        
+    def test_compare_and_exchange_predicate(self):
+        """Test compare-and-exchange with a predicate function."""
+        atomic_var = AtomicVariable(10)
+        result = atomic_var.compare_and_exchange(10, 30, expected_predicate=lambda x: x > 5)
+        self.assertEqual(result, 1)
+        self.assertEqual(atomic_var.get(), 30)
+        
+    def test_compare_and_exchange_predicate_failure(self):
+        """Test compare-and-exchange with a predicate function."""
+        atomic_var = AtomicVariable(10)
+        result = atomic_var.compare_and_exchange(10, 30, expected_predicate=lambda x: x > 35)
+        self.assertEqual(result, 0)
+        self.assertEqual(atomic_var.get(), 10)
     
     def test_concurrent_compare_and_exchange(self):
         """Test concurrent compare-and-exchange operations."""
@@ -43,6 +57,17 @@ class TestAtomicVariable(unittest.TestCase):
         
         self.assertEqual(success_count, 1)
         self.assertEqual(atomic_var.get(), 1)
+        
+    def test_set_with_predicate(self):
+        """Test set operation with a predicate."""
+        atomic_var = AtomicVariable(10)
+        result = atomic_var.set(20, expected_predicate=lambda x: x == 10)
+        self.assertEqual(result, -1)
+        self.assertEqual(atomic_var.get(), 10)
+        
+        result = atomic_var.set(30, expected_predicate=lambda x: x > 10)
+        self.assertEqual(result, 1)
+        self.assertEqual(atomic_var.get(), 30)
 
 if __name__ == "__main__":
     unittest.main()
