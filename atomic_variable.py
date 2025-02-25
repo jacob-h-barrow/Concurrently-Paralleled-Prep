@@ -2,7 +2,7 @@ import threading
 import os
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any, Optional, Callable
 
 type LockType = threading.Lock | threading.RLock
 
@@ -44,7 +44,7 @@ class AtomicVariable:
         self._timeout = timeout
         self._typed_lock = self.get_lock(lock, value)
 
-    def compare_and_exchange(self, expected: Any, new_value: Any, timeout: Optional[float] = None) -> int:
+    def compare_and_exchange(self, expected: Any, new_value: Any, timeout: Optional[float] = None, expected_predicate: Callable[[Any], bool]=None) -> int:
         """Atomically sets the value to new_value if it is currently expected.
         
         Returns:
@@ -56,7 +56,12 @@ class AtomicVariable:
         lock = self.acquire_lock(self._typed_lock, timeout if timeout else self._timeout)
         
         if lock:
-            if self._typed_lock.value == expected:
+            if expected_predicate and isinstance(expected_predicate, Callable):
+                result = expected_predicate(self._typed_lock.value)
+            else:
+                result = self._typed_lock.value == expected
+                
+            if result:
                 self._typed_lock.value = new_value
                 res = 1
             else:
@@ -77,7 +82,7 @@ class AtomicVariable:
             
         return res
 
-    def set(self, new_value: Any, timeout: Optional[float] = None) -> int:
+    def set(self, new_value: Any, timeout: Optional[float] = None, expected_predicate: Callable[[Any], bool]=None) -> int:
         """Atomically sets the value to new_value.
         
         Returns:
@@ -88,9 +93,15 @@ class AtomicVariable:
         lock = self.acquire_lock(self._typed_lock, timeout if timeout else self._timeout)
         
         if lock:
-            self._typed_lock.value = new_value
-            res = 1
+            if expected_predicate and isinstance(expected_predicate, Callable):
+                result = expected_predicate(new_value)
+            else:
+                result = True
+                
+            if result:
+                self._typed_lock.value = new_value
+                res = 1
+                
             lock.release()
             
         return res
-
