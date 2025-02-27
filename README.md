@@ -1,5 +1,5 @@
 # Concurrently-Paralleled-Prep
-- These are internal documents to read off of my iPad.
+- These are internal documents to read off of my tablet
 - Provided so that others can view these as well
 
 ## Purpose
